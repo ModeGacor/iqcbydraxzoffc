@@ -1,267 +1,705 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>iPhone Quote Generator</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>iPhone Quote — DRAXZ</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --teal:#00ffe7;--teal2:rgba(0,255,231,.12);--rose:#ff3f6c;--amber:#ffb800;
+  --bg:#060610;--card:rgba(255,255,255,.028);--border:rgba(255,255,255,.07);
+  --focus:rgba(0,255,231,.45);--text:#dde8ff;--muted:rgba(221,232,255,.35);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;outline:none}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--bg);display:flex;justify-content:center;align-items:center;
+  font-family:'Outfit',sans-serif;position:relative;cursor:none;
+}
 
-    <style>
-        :root {
-            --primary-purple: #8A2BE2;
-            --secondary-purple: #4c1d95;
-            --accent-cyan: #00f3ff;
-            --glass-bg: rgba(20, 20, 30, 0.7);
-            --border-color: rgba(255, 255, 255, 0.1);
-        }
+/* ── CURSOR ── */
+#cur,#cur2{position:fixed;border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%)}
+#cur{width:8px;height:8px;background:var(--teal);box-shadow:0 0 10px var(--teal),0 0 20px rgba(0,255,231,.4)}
+#cur2{width:30px;height:30px;border:1px solid rgba(0,255,231,.4);transition:width .15s,height .15s,border-color .15s}
+body.hovering #cur2{width:44px;height:44px;border-color:rgba(0,255,231,.7)}
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Rajdhani', sans-serif; -webkit-tap-highlight-color: transparent; outline: none; }
+/* ── CANVAS ── */
+#bgCanvas{position:fixed;inset:0;z-index:0}
 
-        body {
-            background-color: #050505;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background: radial-gradient(circle at 50% 20%, #1a0b2e 0%, #000 60%);
-            background-size: 200% 200%;
-            animation: bgPulse 10s ease infinite;
-            overflow: hidden;
-        }
+/* ── NOISE ── */
+.noise{
+  position:fixed;inset:0;z-index:1;opacity:.025;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:180px;animation:noiseShift .12s steps(3) infinite;
+}
+@keyframes noiseShift{0%,100%{background-position:0 0}33%{background-position:30px 15px}66%{background-position:-20px 10px}}
 
-        @keyframes bgPulse {
-            0% { background-position: 50% 0%; }
-            50% { background-position: 50% 20%; }
-            100% { background-position: 50% 0%; }
-        }
+/* ── SCAN LINE ── */
+.scanline{
+  position:fixed;inset:0;z-index:2;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,231,.012) 2px,rgba(0,255,231,.012) 4px);
+}
 
-        .app-container {
-            width: 100%;
-            max-width: 414px;
-            height: 100vh;
-            max-height: 896px; 
-            display: flex;
-            flex-direction: column;
-            color: white;
-            background: rgba(0, 0, 0, 0.8);
-            box-shadow: 0 0 30px rgba(138, 43, 226, 0.2);
-            overflow: hidden;
-            border-left: 1px solid #111;
-            border-right: 1px solid #111;
-        }
+/* ── HUD LINES ── */
+.hud{position:fixed;pointer-events:none;z-index:2}
+.hud.h{height:1px;width:100%;background:linear-gradient(90deg,transparent,rgba(0,255,231,.06),transparent)}
+.hud.h.t{top:8%}.hud.h.b{bottom:8%}
+.hud.v{width:1px;height:100%;background:linear-gradient(180deg,transparent,rgba(0,255,231,.04),transparent)}
+.hud.v.l{left:3%}.hud.v.r{right:3%}
 
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .anim-element { opacity: 0; animation: fadeInUp 0.6s cubic-bezier(0.2,0.8,0.2,1) forwards; }
-        .delay-1 { animation-delay: 0.1s; }
-        .delay-2 { animation-delay: 0.2s; }
-        .delay-3 { animation-delay: 0.3s; }
+/* ── APP SHELL ── */
+.app{
+  width:100%;max-width:414px;height:100vh;max-height:896px;
+  display:flex;flex-direction:column;position:relative;z-index:10;
+  background:linear-gradient(160deg,rgba(255,255,255,.022) 0%,rgba(255,255,255,.005) 100%);
+  border-left:1px solid var(--border);border-right:1px solid var(--border);
+  overflow:hidden;
+}
 
-        header {
-            display: flex; justify-content: center; align-items: center; padding: 20px 25px;
-        }
-        .header-title { font-family: 'Orbitron', sans-serif; font-size: 1.2rem; font-weight: 800; letter-spacing: 1px; background: linear-gradient(to right, #fff, #a29bfe); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 0 10px rgba(138,43,226,0.3); }
+/* ── HEADER ── */
+header{
+  flex-shrink:0;padding:18px 22px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);
+  background:rgba(0,0,0,.5);backdrop-filter:blur(30px);
+  position:relative;overflow:hidden;
+}
+header::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--teal),transparent);
+  opacity:.4;
+}
+.h-badge{display:flex;align-items:center;gap:12px}
+.h-icon{
+  width:36px;height:36px;border-radius:10px;
+  background:linear-gradient(135deg,rgba(0,255,231,.15),rgba(0,255,231,.03));
+  border:1px solid rgba(0,255,231,.25);
+  display:flex;align-items:center;justify-content:center;color:var(--teal);
+  font-size:.9rem;position:relative;overflow:hidden;
+  animation:iconShimmer 4s ease-in-out infinite;
+}
+@keyframes iconShimmer{
+  0%,100%{box-shadow:0 0 0 0 rgba(0,255,231,0)}
+  50%{box-shadow:0 0 20px rgba(0,255,231,.2),inset 0 0 10px rgba(0,255,231,.05)}
+}
+.h-title{
+  font-family:'Syne',sans-serif;font-size:.95rem;font-weight:800;
+  color:var(--text);letter-spacing:.5px;
+  /* subtle glitch on title */
+  position:relative;
+}
+.h-title::before{
+  content:attr(data-t);position:absolute;top:0;left:0;
+  color:var(--rose);clip-path:polygon(0 0,100% 0,100% 35%,0 35%);
+  opacity:0;animation:titleGlitch 7s steps(1) infinite;
+}
+@keyframes titleGlitch{
+  0%,88%,100%{opacity:0;transform:none}
+  89%{opacity:.7;transform:translateX(-2px)}
+  90%{opacity:0}92%{opacity:.5;transform:translateX(1px)}93%{opacity:0}
+}
+.h-sub{font-family:'DM Mono',monospace;font-size:.6rem;color:var(--muted);letter-spacing:2px;margin-top:1px}
+.h-status{display:flex;align-items:center;gap:7px;font-family:'DM Mono',monospace;font-size:.62rem;color:var(--teal)}
+.s-dot{width:6px;height:6px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal);animation:dotBlink 2s ease-in-out infinite}
+@keyframes dotBlink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.8)}}
 
-        .main-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 10px 25px 80px 25px; }
+/* ── SCROLL AREA ── */
+.scroll{
+  flex:1;overflow-y:auto;overflow-x:hidden;
+  padding:20px 18px 90px;
+  scrollbar-width:thin;scrollbar-color:rgba(0,255,231,.15) transparent;
+}
+.scroll::-webkit-scrollbar{width:3px}
+.scroll::-webkit-scrollbar-thumb{background:rgba(0,255,231,.15);border-radius:10px}
 
-        .glass-card { background: rgba(30, 30, 40, 0.6); backdrop-filter: blur(10px); border-radius: 20px; padding: 25px 20px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+/* ── SECTION LABEL ── */
+.slabel{
+  font-family:'DM Mono',monospace;font-size:.6rem;
+  color:var(--teal);letter-spacing:3.5px;text-transform:uppercase;
+  margin-bottom:14px;opacity:.75;
+  display:flex;align-items:center;gap:8px;
+}
+.slabel::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(0,255,231,.2),transparent)}
 
-        .input-group { position: relative; margin-bottom: 20px; }
-        .input-box { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 15px 45px 15px 15px; color: #fff; font-size: 1rem; transition: 0.3s; }
-        .input-box:focus { border-color: var(--accent-cyan); box-shadow: 0 0 15px rgba(0,243,255,0.15); }
-        .input-icon { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #888; }
+/* ── GLASS CARD ── */
+.gcard{
+  background:var(--card);
+  border:1px solid var(--border);border-radius:18px;
+  padding:20px;margin-bottom:16px;
+  position:relative;overflow:hidden;
+  backdrop-filter:blur(12px);
+  transition:border-color .3s,box-shadow .3s;
+}
+.gcard::before{
+  content:'';position:absolute;top:-1px;left:20%;right:20%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(0,255,231,.3),transparent);
+}
+.gcard:hover{border-color:rgba(0,255,231,.12);box-shadow:0 8px 40px rgba(0,0,0,.4),0 0 0 1px rgba(0,255,231,.04)}
 
-        .action-btn { width: 100%; padding: 15px; background: linear-gradient(135deg, var(--primary-purple), var(--secondary-purple)); border: none; border-radius: 12px; color: white; font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 1rem; cursor: pointer; transition: 0.3s; box-shadow: 0 5px 15px rgba(138,43,226,0.3); position: relative; overflow: hidden; }
-        .action-btn:active { transform: scale(0.98); }
-        .action-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+/* ── FIELDS ── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.full{grid-column:1/-1}
+.field{display:flex;flex-direction:column;gap:6px}
+.flabel{
+  font-size:.65rem;font-weight:600;color:var(--muted);
+  letter-spacing:1.5px;text-transform:uppercase;
+  display:flex;align-items:center;gap:5px;
+}
+.flabel i{font-size:.6rem;color:var(--teal);opacity:.7}
 
-        .section-title { font-family: 'Orbitron', sans-serif; font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; text-shadow: 0 0 10px rgba(255,255,255,0.3); }
-        .section-title i { color: var(--accent-cyan); font-size: 1.2rem; }
+.finput{position:relative}
+.finput input,.finput textarea{
+  width:100%;
+  background:rgba(0,0,0,.35);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:11px;padding:13px 14px;
+  color:var(--text);font-family:'Outfit',sans-serif;font-size:.88rem;
+  transition:all .3s;-webkit-appearance:none;
+  letter-spacing:.3px;
+}
+.finput textarea{min-height:86px;resize:none;line-height:1.55}
+.finput input::placeholder,.finput textarea::placeholder{color:rgba(255,255,255,.18);font-size:.82rem}
+.finput input:focus,.finput textarea:focus{
+  border-color:var(--focus);
+  background:rgba(0,255,231,.04);
+  box-shadow:0 0 0 3px rgba(0,255,231,.07),0 4px 24px rgba(0,0,0,.35);
+}
+/* focus line */
+.fline{
+  position:absolute;bottom:0;left:15%;right:15%;height:1.5px;
+  background:linear-gradient(90deg,transparent,var(--teal),transparent);
+  opacity:0;transform:scaleX(0);transition:all .35s;border-radius:2px;
+}
+.finput:focus-within .fline{opacity:1;transform:scaleX(1)}
+.fhint{font-size:.62rem;color:var(--muted);opacity:.55;font-family:'DM Mono',monospace;padding:0 2px}
 
-        .label { color: #ccc; font-size: 0.9rem; margin-bottom: 8px; font-weight: 600; display: flex; align-items: center; }
-        .label i { margin-right: 8px; font-size: 0.8rem; }
+/* ── GENERATE BTN ── */
+.gen-btn{
+  width:100%;padding:0;background:none;border:none;cursor:none;
+  margin-top:16px;display:block;
+}
+.gen-inner{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  padding:16px 20px;
+  background:linear-gradient(135deg,rgba(0,255,231,.09),rgba(0,255,231,.025));
+  border:1px solid rgba(0,255,231,.28);border-radius:13px;
+  position:relative;overflow:hidden;transition:all .3s;
+}
+.gen-btn:not(:disabled):hover .gen-inner{
+  border-color:rgba(0,255,231,.6);
+  background:linear-gradient(135deg,rgba(0,255,231,.14),rgba(0,255,231,.05));
+  box-shadow:0 0 30px rgba(0,255,231,.12),0 0 60px rgba(0,255,231,.04),inset 0 0 20px rgba(0,255,231,.04);
+  transform:translateY(-1px);
+}
+.gen-btn:disabled .gen-inner{opacity:.4;cursor:not-allowed}
+.gen-btn:not(:disabled):active .gen-inner{transform:scale(.985)}
+/* corner deco */
+.gen-inner::before,.gen-inner::after{
+  content:'';position:absolute;width:10px;height:10px;
+  border-color:rgba(0,255,231,.4);border-style:solid;
+  transition:opacity .3s;opacity:0;
+}
+.gen-inner::before{top:5px;left:5px;border-width:1.5px 0 0 1.5px}
+.gen-inner::after{bottom:5px;right:5px;border-width:0 1.5px 1.5px 0}
+.gen-btn:not(:disabled):hover .gen-inner::before,
+.gen-btn:not(:disabled):hover .gen-inner::after{opacity:1}
+/* sweep */
+.sweep{
+  position:absolute;top:0;left:-100%;width:55%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(0,255,231,.09),transparent);
+}
+.gen-btn:not(:disabled):hover .sweep{animation:sweep .8s ease forwards}
+@keyframes sweep{to{left:150%}}
+.gen-txt{
+  font-family:'Syne',sans-serif;font-size:.88rem;font-weight:800;
+  letter-spacing:2px;color:#fff;position:relative;z-index:1;
+  text-shadow:0 0 20px rgba(0,255,231,.5);
+}
+.gen-icon{color:var(--teal);font-size:.85rem;position:relative;z-index:1}
+/* progress bar under button */
+.prog-bar{
+  height:2px;background:rgba(0,255,231,.08);border-radius:0 0 13px 13px;
+  overflow:hidden;margin-top:-2px;display:none;
+}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--teal),rgba(0,255,231,.3));width:0%;animation:progAnim 1.8s ease-in-out infinite}
+@keyframes progAnim{0%{width:0%;margin-left:0}60%{width:70%;margin-left:0}100%{width:0%;margin-left:100%}}
 
-        .input-hint { font-size: 0.75rem; color: #888; margin-top: 5px; margin-bottom: 15px; }
+/* ── LOADING ── */
+.loading{display:none;text-align:center;padding:22px 0 10px}
+.ring-wrap{position:relative;width:44px;height:44px;margin:0 auto 12px}
+.ring-outer{
+  width:44px;height:44px;border-radius:50%;
+  border:1.5px solid rgba(0,255,231,.12);
+  border-top-color:var(--teal);
+  animation:spin .9s linear infinite;
+  position:absolute;inset:0;
+  box-shadow:0 0 12px rgba(0,255,231,.2);
+}
+.ring-inner{
+  width:28px;height:28px;border-radius:50%;
+  border:1.5px solid rgba(255,63,108,.12);
+  border-bottom-color:var(--rose);
+  animation:spin .6s linear infinite reverse;
+  position:absolute;top:8px;left:8px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-txt{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--teal);opacity:.65;letter-spacing:3px;animation:txtBlink 1.2s ease-in-out infinite}
+@keyframes txtBlink{0%,100%{opacity:.65}50%{opacity:.3}}
 
-        .preview-area { display: none; flex-direction: column; align-items: center; }
-        .preview-image { width: 100%; max-width: 300px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 5px 20px rgba(0,0,0,0.5); }
-        .download-btn { display: inline-flex; align-items: center; gap: 10px; background: linear-gradient(135deg, var(--primary-purple), var(--secondary-purple)); padding: 12px 25px; border-radius: 12px; color: white; text-decoration: none; font-weight: 600; transition: 0.3s; font-family: 'Orbitron', sans-serif; font-size: 0.9rem; box-shadow: 0 5px 15px rgba(138,43,226,0.3); }
-        .download-btn:active { transform: scale(0.95); background: linear-gradient(135deg, var(--secondary-purple), var(--primary-purple)); }
+/* ── ERROR ── */
+.errbox{
+  display:none;padding:11px 14px;border-radius:10px;
+  background:rgba(255,63,108,.06);border:1px solid rgba(255,63,108,.18);
+  color:var(--rose);font-size:.8rem;text-align:center;margin-top:12px;
+  animation:errShake .3s ease;
+}
+@keyframes errShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
 
-        .loading-spinner { text-align: center; color: var(--accent-cyan); font-size: 1.5rem; padding: 20px; display: none; }
-        .loading-spinner i { animation: spin 1s infinite linear; }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
+/* ── PREVIEW ── */
+.preview-sec{display:none;flex-direction:column;align-items:center;gap:14px;margin-bottom:16px}
+.preview-sec.show{display:flex}
+.prev-frame{
+  width:100%;border-radius:20px;overflow:hidden;position:relative;
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.03),0 0 40px rgba(0,255,231,.04);
+  animation:previewIn .5s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes previewIn{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
+.prev-frame img{width:100%;display:block;border-radius:20px}
+.prev-glow{
+  position:absolute;inset:0;border-radius:20px;pointer-events:none;
+  background:linear-gradient(to bottom,transparent 55%,rgba(0,0,0,.5));
+}
+/* shimmer on image */
+.prev-shimmer{
+  position:absolute;inset:0;border-radius:20px;pointer-events:none;
+  background:linear-gradient(135deg,transparent 40%,rgba(255,255,255,.04) 50%,transparent 60%);
+  background-size:200% 200%;
+  animation:shimmer 3s ease infinite;
+}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.prev-acts{display:flex;gap:10px;width:100%}
+.dl-btn{
+  flex:1;padding:14px;
+  background:linear-gradient(135deg,rgba(0,255,231,.12),rgba(0,255,231,.04));
+  border:1px solid rgba(0,255,231,.28);border-radius:12px;
+  color:var(--teal);font-family:'Syne',sans-serif;font-weight:800;
+  font-size:.78rem;letter-spacing:2px;cursor:none;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  text-decoration:none;transition:all .25s;position:relative;overflow:hidden;
+}
+.dl-btn:hover{
+  border-color:rgba(0,255,231,.5);
+  box-shadow:0 0 20px rgba(0,255,231,.1);
+  transform:translateY(-1px);
+}
+.dl-btn:active{transform:scale(.97)}
+.regen-btn{
+  padding:14px 16px;background:rgba(255,255,255,.03);
+  border:1px solid var(--border);border-radius:12px;
+  color:var(--muted);cursor:none;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.85rem;transition:all .25s;
+}
+.regen-btn:hover{border-color:rgba(255,255,255,.14);color:var(--text);transform:rotate(90deg) scale(1.05)}
 
-        .error { background: rgba(255,0,0,0.1); border: 1px solid rgba(255,0,0,0.3); color: #ff6b6b; padding: 12px; border-radius: 10px; margin-top: 15px; display: none; text-align: center; font-size: 0.85rem; }
+/* ── TERMINAL ── */
+.terminal{background:rgba(0,0,0,.5);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:4px}
+.term-head{
+  padding:10px 14px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,.015);
+}
+.tdots{display:flex;gap:5px}
+.td{width:8px;height:8px;border-radius:50%}
+.td.r{background:rgba(255,93,93,.6);box-shadow:0 0 4px rgba(255,93,93,.3)}
+.td.y{background:rgba(255,184,0,.6);box-shadow:0 0 4px rgba(255,184,0,.3)}
+.td.g{background:rgba(0,229,100,.6);box-shadow:0 0 4px rgba(0,229,100,.3)}
+.tname{font-family:'DM Mono',monospace;font-size:.6rem;color:var(--muted);margin-left:4px;letter-spacing:1px}
+.term-body{
+  padding:12px 14px;height:100px;overflow-y:auto;
+  font-family:'DM Mono',monospace;font-size:.68rem;
+  scrollbar-width:none;
+}
+.term-body::-webkit-scrollbar{display:none}
+.tline{display:flex;gap:7px;margin-bottom:4px;line-height:1.45}
+.tline .p{color:rgba(0,255,231,.3);flex-shrink:0}
+.tline.ok .m{color:var(--teal)}
+.tline.err .m{color:var(--rose)}
+.tline.info .m{color:var(--muted)}
+/* typing cursor on last log */
+.tline:last-child .m::after{content:'▋';animation:blinky .8s step-end infinite}
+@keyframes blinky{0%,100%{opacity:1}50%{opacity:0}}
 
-        .terminal-log { background: #0a0a0a; border: 1px solid #333; border-radius: 12px; padding: 15px; font-family: 'Courier Prime', monospace; font-size: 0.75rem; height: 120px; overflow-y: auto; color: #00ff88; margin-top: 20px; margin-bottom: 20px; }
-        .log-line { margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 2px; }
-        .log-error { color: #ff0055; }
-        .log-info { color: #aaa; }
-        .log-success { color: #00ff88; }
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:24px;left:50%;
+  transform:translateX(-50%) translateY(20px) scale(.92);
+  background:rgba(8,8,18,.97);border:1px solid rgba(0,255,231,.2);
+  padding:11px 22px;border-radius:50px;
+  display:flex;align-items:center;gap:9px;
+  opacity:0;pointer-events:none;
+  transition:all .35s cubic-bezier(.34,1.56,.64,1);
+  z-index:9999;color:var(--text);font-size:.8rem;font-weight:500;
+  box-shadow:0 12px 40px rgba(0,0,0,.6),0 0 0 1px rgba(0,255,231,.07),0 0 20px rgba(0,255,231,.06);
+  backdrop-filter:blur(24px);white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+.toast.err{border-color:rgba(255,63,108,.3);box-shadow:0 12px 40px rgba(0,0,0,.6),0 0 20px rgba(255,63,108,.08)}
+.toast i{font-size:.75rem}
 
-        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(30,30,40,0.95); border: 1px solid var(--accent-cyan); padding: 12px 20px; border-radius: 50px; display: flex; align-items: center; gap: 10px; opacity: 0; pointer-events: none; transition: 0.3s; z-index: 2000; color: white; font-weight: 600; box-shadow: 0 5px 15px rgba(0,243,255,0.3); backdrop-filter: blur(10px); min-width: 250px; text-align: center; justify-content: center; }
-        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-        .toast i { color: var(--accent-cyan); }
-
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
-    </style>
+/* ── ENTRY ANIMATIONS ── */
+.fadeup{opacity:0;transform:translateY(20px);animation:fadeup .55s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes fadeup{to{opacity:1;transform:none}}
+.d1{animation-delay:.07s}.d2{animation-delay:.15s}.d3{animation-delay:.23s}.d4{animation-delay:.31s}
+</style>
 </head>
 <body>
 
-    <div class="app-container">
-        <header>
-            <div class="header-title">IPHONE QUOTE BY DRAXZ</div>
-        </header>
+<div id="cur"></div>
+<div id="cur2"></div>
+<canvas id="bgCanvas"></canvas>
+<div class="noise"></div>
+<div class="scanline"></div>
+<div class="hud h t"></div>
+<div class="hud h b"></div>
+<div class="hud v l"></div>
+<div class="hud v r"></div>
 
-        <div class="main-content">
-            <div class="glass-card anim-element delay-1">
-                <div class="section-title"><i class="fa-solid fa-quote-right"></i> Quote Generator Panel</div>
-                
-                <div class="input-group">
-                    <div class="label"><i class="fa-solid fa-clock"></i> Jam</div>
-                    <input type="text" class="input-box" id="time" placeholder="18:00" required>
-                    <div class="input-hint">Format: HH:MM</div>
-                </div>
+<div class="app">
+  <header>
+    <div class="h-badge">
+      <div class="h-icon"><i class="fa-brands fa-apple"></i></div>
+      <div>
+        <div class="h-title" data-t="Quote Generator">Quote Generator</div>
+        <div class="h-sub">BY DRAXZ</div>
+      </div>
+    </div>
+    <div class="h-status"><div class="s-dot"></div>ONLINE</div>
+  </header>
 
-                <div class="input-group">
-                    <div class="label"><i class="fa-solid fa-battery-half"></i> Persentase Baterai</div>
-                    <input type="number" class="input-box" id="battery" placeholder="40" min="0" max="100" required>
-                    <div class="input-hint">Angka 0-100</div>
-                </div>
+  <div class="scroll">
 
-                <div class="input-group">
-                    <div class="label"><i class="fa-solid fa-signal"></i> Nama Provider</div>
-                    <input type="text" class="input-box" id="carrier" placeholder="Telkomsel" required>
-                </div>
+    <div class="fadeup d1">
+      <div class="slabel"><i class="fa-solid fa-sliders" style="font-size:.55rem"></i> PARAMETER INPUT</div>
+      <div class="gcard">
 
-                <div class="input-group">
-                    <div class="label"><i class="fa-solid fa-comment"></i> Pesan</div>
-                    <textarea class="input-box" id="message" placeholder="Haii bang" required style="min-height: 100px; resize: vertical;"></textarea>
-                </div>
-
-                <button class="action-btn" id="generateBtn"><i class="fa-solid fa-rocket"></i> GENERATE QUOTE</button>
-                <div class="loading-spinner" id="loading"><i class="fa-solid fa-circle-notch"></i></div>
-                <div class="error" id="error"></div>
+        <div class="grid2">
+          <div class="field">
+            <div class="flabel"><i class="fa-regular fa-clock"></i> Jam</div>
+            <div class="finput">
+              <input type="text" id="time" placeholder="18:00">
+              <div class="fline"></div>
             </div>
-
-            <div class="glass-card preview-area anim-element delay-2" id="previewArea">
-                <img id="previewImage" class="preview-image" alt="Preview">
-                <a href="#" class="download-btn" id="downloadBtn" download="iphone-quote.png"><i class="fa-solid fa-download"></i> DOWNLOAD</a>
+            <div class="fhint">Format HH:MM</div>
+          </div>
+          <div class="field">
+            <div class="flabel"><i class="fa-solid fa-battery-half"></i> Baterai</div>
+            <div class="finput">
+              <input type="number" id="battery" placeholder="40" min="0" max="100">
+              <div class="fline"></div>
             </div>
-
-            <div class="terminal-log anim-element delay-3" id="log">
-                <div class="log-line">> System Initialized...</div>
-                <div class="log-line log-info">> Ready to generate iPhone quotes.</div>
+            <div class="fhint">0 — 100</div>
+          </div>
+          <div class="field full">
+            <div class="flabel"><i class="fa-solid fa-signal"></i> Provider</div>
+            <div class="finput">
+              <input type="text" id="carrier" placeholder="Telkomsel">
+              <div class="fline"></div>
             </div>
+          </div>
+          <div class="field full">
+            <div class="flabel"><i class="fa-regular fa-comment-dots"></i> Pesan</div>
+            <div class="finput">
+              <textarea id="message" placeholder="Haii bang..."></textarea>
+              <div class="fline"></div>
+            </div>
+          </div>
         </div>
+
+        <button class="gen-btn" id="generateBtn">
+          <div class="gen-inner">
+            <div class="sweep"></div>
+            <span class="gen-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+            <span class="gen-txt" id="btnTxt">GENERATE QUOTE</span>
+          </div>
+        </button>
+        <div class="prog-bar" id="progBar"><div class="prog-fill"></div></div>
+
+        <div class="loading" id="loading">
+          <div class="ring-wrap">
+            <div class="ring-outer"></div>
+            <div class="ring-inner"></div>
+          </div>
+          <div class="load-txt">PROCESSING...</div>
+        </div>
+        <div class="errbox" id="errbox"></div>
+
+      </div>
     </div>
 
-    <div class="toast" id="toast"><i class="fa-solid fa-info-circle"></i> <span id="toast-msg">Message here</span></div>
+    <!-- Preview -->
+    <div class="preview-sec fadeup d2" id="previewArea">
+      <div class="slabel" style="width:100%"><i class="fa-regular fa-image" style="font-size:.55rem"></i> PREVIEW RESULT</div>
+      <div class="prev-frame">
+        <img id="previewImage" alt="iPhone Quote Preview">
+        <div class="prev-glow"></div>
+        <div class="prev-shimmer"></div>
+      </div>
+      <div class="prev-acts">
+        <a href="#" class="dl-btn" id="downloadBtn"><i class="fa-solid fa-download"></i> DOWNLOAD</a>
+        <button class="regen-btn" id="regenBtn" title="Regenerate"><i class="fa-solid fa-rotate-right"></i></button>
+      </div>
+    </div>
 
-    <script>
-        const utils = {
-            log: (msg, type='') => {
-                const log = document.getElementById('log');
-                const line = document.createElement('div');
-                line.className = `log-line ${type==='error'?'log-error':type==='info'?'log-info':type==='success'?'log-success':''}`;
-                line.innerText = `> ${msg}`;
-                log.appendChild(line);
-                log.scrollTop = log.scrollHeight;
-            },
-            toast: (msg) => {
-                const t = document.getElementById('toast');
-                document.getElementById('toast-msg').innerText = msg;
-                t.classList.add('show');
-                setTimeout(()=>t.classList.remove('show'),3000);
-            },
-            loading: (state) => {
-                document.getElementById('loading').style.display = state ? 'block':'none';
-                document.getElementById('generateBtn').disabled = state;
-            }
-        };
+    <!-- Terminal -->
+    <div class="fadeup d3">
+      <div class="terminal">
+        <div class="term-head">
+          <div class="tdots"><div class="td r"></div><div class="td y"></div><div class="td g"></div></div>
+          <span class="tname">SYSTEM LOG</span>
+        </div>
+        <div class="term-body" id="log">
+          <div class="tline info"><span class="p">$</span><span class="m">System initialized...</span></div>
+          <div class="tline ok"><span class="p">$</span><span class="m">iPhone Quote Generator ready.</span></div>
+        </div>
+      </div>
+    </div>
 
-        window.addEventListener('load', () => {
-            const now = new Date();
-            const h = String(now.getHours()).padStart(2,'0');
-            const m = String(now.getMinutes()).padStart(2,'0');
-            document.getElementById('time').value = `${h}:${m}`;
-        });
+  </div>
+</div>
 
-        const generateBtn = document.getElementById('generateBtn');
-        const error = document.getElementById('error');
-        const previewArea = document.getElementById('previewArea');
-        const previewImage = document.getElementById('previewImage');
-        const downloadBtn = document.getElementById('downloadBtn');
+<div class="toast" id="toast"><i class="fa-solid fa-circle-check"></i><span id="tmsg"></span></div>
 
-        generateBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            const time = document.getElementById('time').value.trim();
-            const battery = document.getElementById('battery').value;
-            const carrier = document.getElementById('carrier').value.trim();
-            const message = document.getElementById('message').value.trim();
+<script>
+/* ─── CURSOR ─── */
+const cur=document.getElementById('cur'),cur2=document.getElementById('cur2');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY});
+(function loop(){
+  cur.style.left=mx+'px';cur.style.top=my+'px';
+  rx+=(mx-rx)*.1;ry+=(my-ry)*.1;
+  cur2.style.left=rx+'px';cur2.style.top=ry+'px';
+  requestAnimationFrame(loop);
+})();
+document.querySelectorAll('button,input,textarea,a').forEach(el=>{
+  el.addEventListener('mouseenter',()=>document.body.classList.add('hovering'));
+  el.addEventListener('mouseleave',()=>document.body.classList.remove('hovering'));
+});
 
-            if(!time||!battery||!carrier||!message){ showError('⚠️ Semua field harus diisi!'); return; }
+/* ─── CANVAS BACKGROUND ─── */
+const cv=document.getElementById('bgCanvas'),cx=cv.getContext('2d');
+let W,H;
+const resize=()=>{W=cv.width=window.innerWidth;H=cv.height=window.innerHeight};
+resize();window.addEventListener('resize',resize);
 
-            error.style.display = 'none';
-            previewArea.style.display = 'none';
-            utils.loading(true);
-            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> PROCESSING...';
-            utils.log(`Generating quote for: ${time}, ${battery}%, ${carrier}`, 'info');
+/* particles */
+const N=160;
+const pts=Array.from({length:N},()=>mkPt());
+function mkPt(){
+  return{
+    x:Math.random()*2000,y:Math.random()*1500,
+    r:Math.random()*1.1+.15,
+    vx:(Math.random()-.5)*.22,vy:-Math.random()*.5-.08,
+    life:Math.random(),decay:Math.random()*.0025+.0008,
+    col:Math.random()>.55?'0,255,231':Math.random()>.5?'255,63,108':'255,184,0'
+  };
+}
 
-            try {
-                const url = `https://brat.siputzx.my.id/iphone-quoted?time=${encodeURIComponent(time)}&batteryPercentage=${battery}&carrierName=${encodeURIComponent(carrier)}&messageText=${encodeURIComponent(message)}&emojiStyle=apple`;
+/* data streams */
+const streams=Array.from({length:22},()=>mkStream());
+function mkStream(){
+  const s={};
+  function r(){
+    s.x=Math.floor(Math.random()*60)*60+30;
+    s.y=Math.random()>.5?-20:H+20;
+    s.dir=s.y<0?1:-1;
+    s.speed=Math.random()*.7+.25;
+    s.len=Math.random()*90+35;
+    s.c=Math.random()>.55?'0,255,231':'255,63,108';
+    s.alpha=Math.random()*.4+.1;
+  }
+  r();s.reset=r;s.y=Math.random()*1500;
+  return s;
+}
 
-                previewImage.onload = function() {
-                    previewArea.style.display='flex';
-                    utils.loading(false);
-                    generateBtn.innerHTML='<i class="fa-solid fa-rocket"></i> GENERATE QUOTE';
-                    utils.toast("Quote berhasil dibuat!");
-                    utils.log(`Quote successfully generated for ${carrier}`, 'success');
+/* blobs */
+const blobs=[
+  {x:.2,y:.2,r:320,c:'0,255,231',a:.055,spd:.0003,phase:0},
+  {x:.85,y:.85,r:260,c:'255,63,108',a:.04,spd:.00045,phase:2},
+  {x:.5,y:.5,r:200,c:'255,184,0',a:.025,spd:.0006,phase:4},
+];
 
-                    downloadBtn.onclick = async function(e){
-                        e.preventDefault();
-                        try{
-                            const response = await fetch(url);
-                            const blob = await response.blob();
-                            const downloadUrl = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href=downloadUrl;
-                            a.download=`iphone-quote-${Date.now()}.png`;
-                            a.click();
-                            URL.revokeObjectURL(downloadUrl);
-                            utils.log(`Downloaded: iphone-quote-${Date.now()}.png`, 'success');
-                        } catch {
-                            window.open(url,'_blank');
-                            utils.log(`Opened image in new tab`, 'info');
-                        }
-                    };
-                };
+let t=0;
+function frame(){
+  t++;
+  cx.fillStyle='rgba(6,6,16,.18)';
+  cx.fillRect(0,0,W,H);
 
-                previewImage.onerror=function(){ showError('❌ Gagal memuat gambar.'); utils.loading(false); generateBtn.innerHTML='<i class="fa-solid fa-rocket"></i> GENERATE QUOTE'; utils.log(`Failed to load image from API`,'error'); };
-                previewImage.src=url;
-                downloadBtn.href=url;
+  /* blobs */
+  blobs.forEach(b=>{
+    const bx=(b.x+Math.sin(t*b.spd+b.phase)*.12)*W;
+    const by=(b.y+Math.cos(t*b.spd*1.3+b.phase)*.1)*H;
+    const g=cx.createRadialGradient(bx,by,0,bx,by,b.r);
+    g.addColorStop(0,`rgba(${b.c},${b.a})`);
+    g.addColorStop(1,'transparent');
+    cx.fillStyle=g;cx.fillRect(0,0,W,H);
+  });
 
-            } catch(err){
-                showError('Error: '+err.message);
-                utils.log(`API Error: ${err.message}`,'error');
-            } finally { utils.loading(false); generateBtn.innerHTML='<i class="fa-solid fa-rocket"></i> GENERATE QUOTE'; }
-        });
+  /* grid */
+  const gs=55;
+  cx.strokeStyle='rgba(0,255,231,.018)';cx.lineWidth=.5;
+  for(let x=0;x<W;x+=gs){cx.beginPath();cx.moveTo(x,0);cx.lineTo(x,H);cx.stroke()}
+  for(let y=0;y<H;y+=gs){cx.beginPath();cx.moveTo(0,y);cx.lineTo(W,y);cx.stroke()}
 
-        function showError(message){
-            error.textContent=message;
-            error.style.display='block';
-            utils.toast(message);
-        }
+  /* streams */
+  streams.forEach(s=>{
+    s.y+=s.speed*s.dir;
+    if((s.dir>0&&s.y>H+20)||(s.dir<0&&s.y<-20))s.reset();
+    const g=cx.createLinearGradient(s.x,s.y,s.x,s.y-s.len*s.dir);
+    g.addColorStop(0,`rgba(${s.c},${s.alpha})`);g.addColorStop(1,`rgba(${s.c},0)`);
+    cx.strokeStyle=g;cx.lineWidth=1;
+    cx.beginPath();cx.moveTo(s.x,s.y);cx.lineTo(s.x,s.y-s.len*s.dir);cx.stroke();
+  });
 
-        document.addEventListener('DOMContentLoaded', function(){
-            utils.log('iPhone Quote Generator initialized','success');
-        });
-    </script>
+  /* particles */
+  pts.forEach(p=>{
+    p.x+=p.vx;p.y+=p.vy;p.life-=p.decay;
+    if(p.life<=0||p.y<-10)Object.assign(p,mkPt(),{x:Math.random()*W,y:H+5,life:1});
+    cx.beginPath();cx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    cx.fillStyle=`rgba(${p.col},${p.life*.5})`;cx.fill();
+  });
+
+  /* mouse glow */
+  if(mx){
+    const g=cx.createRadialGradient(mx,my,0,mx,my,220);
+    g.addColorStop(0,'rgba(0,255,231,.04)');g.addColorStop(1,'transparent');
+    cx.fillStyle=g;cx.fillRect(0,0,W,H);
+  }
+  requestAnimationFrame(frame);
+}
+frame();
+
+/* ─── UTILS ─── */
+let toastTimer;
+const utils={
+  log(msg,type='info'){
+    const log=document.getElementById('log');
+    const d=document.createElement('div');
+    d.className=`tline ${type}`;
+    d.innerHTML=`<span class="p">$</span><span class="m">${msg}</span>`;
+    log.appendChild(d);
+    log.scrollTop=log.scrollHeight;
+  },
+  toast(msg,err=false){
+    const t=document.getElementById('toast');
+    const i=t.querySelector('i');
+    document.getElementById('tmsg').textContent=msg;
+    i.className=err?'fa-solid fa-circle-exclamation':'fa-solid fa-circle-check';
+    i.style.color=err?'var(--rose)':'var(--teal)';
+    t.classList.toggle('err',err);
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
+  },
+  setLoad(on){
+    document.getElementById('loading').style.display=on?'block':'none';
+    document.getElementById('progBar').style.display=on?'block':'none';
+    const btn=document.getElementById('generateBtn');
+    btn.disabled=on;
+    document.getElementById('btnTxt').textContent=on?'PROCESSING...':'GENERATE QUOTE';
+  }
+};
+
+/* ─── LOGIC ─── */
+window.addEventListener('load',()=>{
+  const now=new Date();
+  document.getElementById('time').value=
+    String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+});
+
+let currentUrl='';
+
+async function doGenerate(){
+  const time=document.getElementById('time').value.trim();
+  const battery=document.getElementById('battery').value;
+  const carrier=document.getElementById('carrier').value.trim();
+  const message=document.getElementById('message').value.trim();
+  const errEl=document.getElementById('errbox');
+
+  if(!time||!battery||!carrier||!message){
+    errEl.textContent='⚠️ Semua field harus diisi!';
+    errEl.style.display='block';
+    utils.toast('Semua field harus diisi!',true);
+    return;
+  }
+  errEl.style.display='none';
+  document.getElementById('previewArea').classList.remove('show');
+  document.getElementById('previewArea').style.display='none';
+  utils.setLoad(true);
+  utils.log(`Generating: ${time} | ${battery}% | ${carrier}`,'info');
+
+  currentUrl=`https://brat.siputzx.my.id/iphone-quoted?time=${encodeURIComponent(time)}&batteryPercentage=${battery}&carrierName=${encodeURIComponent(carrier)}&messageText=${encodeURIComponent(message)}&emojiStyle=apple`;
+
+  const img=document.getElementById('previewImage');
+  img.onload=function(){
+    const pa=document.getElementById('previewArea');
+    pa.style.display='flex';
+    pa.classList.add('show');
+    utils.setLoad(false);
+    utils.log(`Berhasil dibuat untuk ${carrier}`,'ok');
+    utils.toast('Quote berhasil dibuat! ✨');
+  };
+  img.onerror=function(){
+    utils.setLoad(false);
+    errEl.textContent='❌ Gagal memuat gambar. Coba lagi.';
+    errEl.style.display='block';
+    utils.log('Gagal load gambar dari API','err');
+    utils.toast('Gagal memuat gambar!',true);
+  };
+  img.src=currentUrl;
+  document.getElementById('downloadBtn').href=currentUrl;
+}
+
+document.getElementById('generateBtn').addEventListener('click',e=>{e.preventDefault();doGenerate()});
+document.getElementById('regenBtn').addEventListener('click',()=>doGenerate());
+
+document.getElementById('downloadBtn').addEventListener('click',async function(e){
+  e.preventDefault();
+  if(!currentUrl)return;
+  try{
+    const res=await fetch(currentUrl);
+    const blob=await res.blob();
+    const u=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=u;a.download=`iphone-quote-${Date.now()}.png`;a.click();
+    URL.revokeObjectURL(u);
+    utils.log(`Downloaded OK`,'ok');
+    utils.toast('Download berhasil! 💾');
+  }catch{
+    window.open(currentUrl,'_blank');
+    utils.log('Opened in new tab','info');
+  }
+});
+
+/* ripple on buttons */
+document.querySelectorAll('.gen-inner,.dl-btn').forEach(el=>{
+  el.addEventListener('click',function(e){
+    const r=document.createElement('span');
+    const rect=el.getBoundingClientRect();
+    const s=Math.max(rect.width,rect.height)*2;
+    r.style.cssText=`position:absolute;width:${s}px;height:${s}px;border-radius:50%;
+      background:rgba(0,255,231,.12);transform:translate(-50%,-50%) scale(0);
+      top:${e.clientY-rect.top}px;left:${e.clientX-rect.left}px;
+      animation:ripple .6s ease forwards;pointer-events:none;z-index:0`;
+    el.appendChild(r);setTimeout(()=>r.remove(),600);
+  });
+});
+const rs=document.createElement('style');
+rs.textContent='@keyframes ripple{to{transform:translate(-50%,-50%) scale(1);opacity:0}}';
+document.head.appendChild(rs);
+</script>
 </body>
 </html>
